@@ -1,0 +1,20 @@
+[
+    {
+        "id_cours": "C1",
+        "intitule": "Algorithmique",
+        "volume_horaire": 2,
+        "promotion_option": "P1"
+    },
+    {
+        "id_cours": "C2",
+        "intitule": "Bases de données",
+        "volume_horaire": 3,
+        "promotion_option": "O1"
+    },
+    {
+        "id_cours": "C3",
+        "intitule": "Comptabilité Général",
+        "volume_horaire": 2,
+        "promotion_option": "O1"
+    }
+]

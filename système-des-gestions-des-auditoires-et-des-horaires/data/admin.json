@@ -1,0 +1,17 @@
+{
+  "admins": [
+    {
+      "username": "admin",
+      "password_hash": "$2y$12$7OLHIVG3N/HXcnrsCZWyc.AKj7MSuMxBnKLD4QJ5KdghA3hO7W7x2",
+      "is_active": true,
+      "permissions": {
+        "manage_rooms": true,
+        "manage_courses": true,
+        "manage_promotions": true,
+        "manage_options": true,
+        "manage_planning": true,
+        "manage_admins": true
+      }
+    }
+  ]
+}

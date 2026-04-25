@@ -1,0 +1,22 @@
+[
+  {
+    "id_promotion": "P1",
+    "libelle": "Licence 1",
+    "effectif_total": 100
+  },
+  {
+    "id_promotion": "P2",
+    "libelle": "Licence 2",
+    "effectif_total": 70
+  },
+  {
+    "id_promotion": "P3",
+    "libelle": "Licence 3",
+    "effectif_total": 60
+  },
+  {
+    "id_promotion": "P4",
+    "libelle": "Licence 4",
+    "effectif_total": 50
+  }
+]

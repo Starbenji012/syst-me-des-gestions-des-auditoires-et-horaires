@@ -1,0 +1,208 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{lmodern}
+\usepackage{setspace}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\geometry{margin=2.5cm}
+\onehalfspacing
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\title{Rapport Technique\\\large Systeme de Gestion des Auditoires et des Horaires}
+\author{Projet PHP Procedural (sans framework)}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Ce document presente de maniere detaillee le travail realise pour concevoir et developper une application complete de gestion des auditoires.
+L'application permet de planifier les cours, reserver les salles, eviter les conflits d'occupation et optimiser l'affectation des ressources selon la capacite des auditoires.
+
+Le projet est construit en \textbf{PHP procedural} (sans framework), avec des vues HTML/CSS integrees dans les fichiers PHP et un stockage des donnees en \textbf{JSON}.
+
+\section{Objectifs fonctionnels}
+\subsection{Objectif general}
+Mettre en place un systeme academique permettant de:
+\begin{itemize}[leftmargin=1.2cm]
+    \item planifier les cours;
+    \item reserver les salles;
+    \item attribuer les salles selon la capacite des groupes;
+    \item bloquer les conflits (meme salle, meme creneau);
+    \item rendre le planning coherent, lisible et exploitable.
+\end{itemize}
+
+\subsection{Contraintes respectees}
+\begin{itemize}[leftmargin=1.2cm]
+    \item aucun framework PHP;
+    \item persistance uniquement via des fichiers JSON;
+    \item logique metier centralisee dans des fonctions reutilisables;
+    \item interfaces admin et publiques distinctes;
+    \item controle d'acces administrateur avec gestion de droits.
+\end{itemize}
+
+\section{Architecture du projet}
+\subsection{Arborescence logique actuelle}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \texttt{index.php}: page publique principale (accueil + apercus);
+    \item \texttt{config/config.php}: configuration globale de l'application;
+    \item \texttt{data/*.json}: base de donnees JSON;
+    \item \texttt{includes/}: fonctions, header, footer;
+    \item \texttt{admin/}: espace administrateur (CRUD + planning + securite + gestion admins);
+    \item \texttt{actions/}: endpoints de traitement (ajout, generation, reset, etc.);
+    \item \texttt{auth/login.php} et \texttt{auth/logout.php}: authentification;
+    \item \texttt{pages/stats.php}: statistiques et disponibilites;
+    \item \texttt{assets/css/style.php}, \texttt{assets/js/app.js}: ressources front.
+\end{itemize}
+
+\subsection{Separation des responsabilites}
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{Config}: constantes application + resolution d'URL;
+    \item \textbf{Fonctions metier}: lecture/criture JSON, validations, planning, permissions;
+    \item \textbf{Pages}: presentation et formulaires;
+    \item \textbf{Actions}: traitement des soumissions et redirections.
+\end{itemize}
+
+\section{Modele de donnees JSON}
+\subsection{Fichiers utilises}
+\begin{longtable}{|>{\raggedright\arraybackslash}p{3.2cm}|>{\raggedright\arraybackslash}p{9.2cm}|}
+\hline
+\textbf{Fichier} & \textbf{Contenu} \\\hline
+\texttt{salles.json} & id, designation, capacite \\\hline
+\texttt{promotions.json} & id\_promotion, libelle, effectif\_total \\\hline
+\texttt{options.json} & id\_option, libelle, promotion\_parente, effectif \\\hline
+\texttt{cours.json} & id\_cours, intitule, volume\_horaire, promotion\_option \\\hline
+\texttt{planning.json} & creneau, salle, cours, groupe \\\hline
+\texttt{admin.json} & liste des administrateurs, hash de mot de passe, statut actif, permissions \\\hline
+\end{longtable}
+
+\subsection{Relations fonctionnelles}
+\begin{itemize}[leftmargin=1.2cm]
+    \item un \textbf{cours} cible soit une promotion, soit une option (champ \texttt{promotion\_option});
+    \item une \textbf{option} depend d'une promotion parente;
+    \item une ligne de \textbf{planning} relie un creneau, une salle, un cours et un groupe.
+\end{itemize}
+
+\section{Logique metier principale}
+\subsection{Regles de reservation}
+Lors de l'ajout (manuel ou automatique) d'une seance:
+\begin{itemize}[leftmargin=1.2cm]
+    \item tous les champs doivent etre remplis;
+    \item le groupe doit exister;
+    \item la salle doit etre libre sur le creneau;
+    \item le groupe ne doit pas deja etre occupe sur le meme creneau;
+    \item la capacite de la salle doit etre suffisante.
+\end{itemize}
+
+\subsection{Gestion des conflits}
+Deux types de conflits sont verifies:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \textbf{conflit salle}: meme salle + meme creneau;
+    \item \textbf{conflit groupe}: meme groupe + meme creneau.
+\end{itemize}
+
+\subsection{Attribution intelligente des salles}
+L'algorithme trie les salles par capacite croissante et prend la premiere salle disponible capable d'accueillir le groupe.
+Cela minimise le gaspillage des grandes salles et reserve les capacites elevees aux grands effectifs.
+
+\subsection{Generation automatique du planning}
+La generation suit une logique en plusieurs etapes:
+\begin{enumerate}[leftmargin=1.2cm]
+    \item tri des cours par taille de groupe (du plus grand au plus petit), puis volume horaire;
+    \item decoupage du volume horaire en sessions (par bloc d'environ 2h);
+    \item recherche d'un creneau sans conflit;
+    \item recherche de la meilleure salle disponible;
+    \item ecriture des seances dans \texttt{planning.json};
+    \item retour des erreurs si certaines sessions sont impossibles a placer.
+\end{enumerate}
+
+\section{Interfaces et parcours utilisateur}
+\subsection{Espace public}
+\begin{itemize}[leftmargin=1.2cm]
+    \item page d'accueil: KPIs, planning du jour, planning global;
+    \item page statistiques: disponibilite des salles, occupation par jour, capacites globales.
+\end{itemize}
+
+\subsection{Espace administrateur}
+\begin{itemize}[leftmargin=1.2cm]
+    \item dashboard (indicateurs de synthese);
+    \item CRUD salles, cours, promotions, options;
+    \item planning: filtres, vue hebdomadaire, ajout, modification, suppression, generation auto, reset;
+    \item changement de mot de passe;
+    \item gestion des administrateurs et des droits.
+\end{itemize}
+
+\section{Securite et controle d'acces}
+\subsection{Authentification}
+\begin{itemize}[leftmargin=1.2cm]
+    \item connexion via \texttt{auth/login.php};
+    \item deconnexion via \texttt{auth/logout.php};
+    \item mots de passe stockes en hash (\texttt{password\_hash}/\texttt{password\_verify});
+    \item session PHP pour maintenir l'etat authentifie.
+\end{itemize}
+
+\subsection{RBAC (Role-Based Access Control)}
+Chaque administrateur possede un ensemble de permissions booleennes:
+\begin{itemize}[leftmargin=1.2cm]
+    \item \texttt{manage\_rooms}
+    \item \texttt{manage\_courses}
+    \item \texttt{manage\_promotions}
+    \item \texttt{manage\_options}
+    \item \texttt{manage\_planning}
+    \item \texttt{manage\_admins}
+\end{itemize}
+
+Ces permissions sont appliquees a la fois sur:
+\begin{itemize}[leftmargin=1.2cm]
+    \item l'affichage des menus;
+    \item l'acces aux pages;
+    \item l'execution des actions serveur.
+\end{itemize}
+
+\subsection{Regle de securite specifique}
+Un administrateur connecte ne peut pas se retirer lui-meme le droit \texttt{manage\_admins}. Cette protection evite de perdre la capacite de gouvernance des comptes administrateurs.
+
+\section{Qualite et robustesse}
+\subsection{Validation des donnees}
+La validation est appliquee sur les champs critiques (vide, types, cohérence metier).
+Les erreurs sont restituees a l'utilisateur via des messages flash clairs.
+
+\subsection{Integrite des ecritures}
+Les suppressions/modifications de planning sont basees sur des cles logiques (creneau+salle+cours+groupe), et non sur des index visuels, ce qui reduit les risques d'erreur avec les filtres.
+
+\subsection{Verification technique}
+Les fichiers PHP ont ete verifies regulierement avec \texttt{php -l} pour detecter rapidement les erreurs de syntaxe durant l'evolution du code.
+
+\section{Limites actuelles}
+\begin{itemize}[leftmargin=1.2cm]
+    \item stockage JSON adapte aux petites/moyennes charges mais moins adapte au multi-utilisateur intensif;
+    \item absence de transactions fortes comme dans une base relationnelle;
+    \item historique/audit des actions administrateur non encore implemente.
+\end{itemize}
+
+\section{Perspectives d'amelioration}
+\begin{itemize}[leftmargin=1.2cm]
+    \item journalisation des actions sensibles (audit trail);
+    \item export PDF/Excel du planning;
+    \item notification des conflits restants;
+    \item moteur de generation plus avance (contraintes pedagogiques supplementaires);
+    \item migration optionnelle vers une base SQL si le volume augmente.
+\end{itemize}
+
+\section{Conclusion}
+Le projet repond aux exigences centrales: planification, reservation, prevention des conflits, respect des capacites, optimisation de l'affectation et administration securisee.
+La conception en PHP procedural et JSON est respectee, avec une architecture claire, maintenable et evolutive.
+
+Ce travail constitue une base operationnelle solide pour la gestion academique des auditoires et des horaires, tout en laissant de la place a des extensions futures.
+
+\end{document}

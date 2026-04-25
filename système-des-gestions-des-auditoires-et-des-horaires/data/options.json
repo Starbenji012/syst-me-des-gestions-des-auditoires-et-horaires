@@ -1,0 +1,14 @@
+[
+    {
+        "id_option": "O1",
+        "libelle": "Informatique",
+        "promotion_parente": "P2",
+        "effectif": 40
+    },
+    {
+        "id_option": "O2",
+        "libelle": "Réseaux",
+        "promotion_parente": "P3",
+        "effectif": 30
+    }
+]

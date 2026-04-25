@@ -1,0 +1,22 @@
+[
+    {
+        "id": "S1",
+        "designation": "Auditoire l1",
+        "capacite": 500
+    },
+    {
+        "id": "S2",
+        "designation": "Auditoire L2",
+        "capacite": 410
+    },
+    {
+        "id": "S3",
+        "designation": "Auditoire L3",
+        "capacite": 300
+    },
+    {
+        "id": "S4",
+        "designation": "Auditoire L4",
+        "capacite": 250
+    }
+]
