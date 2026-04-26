@@ -7,11 +7,19 @@ require_once INCLUDES_PATH . '/functions.php';
 requireAdmin();
 requirePermission('manage_promotions');
 
+$isSuperAdmin = isSuperAdmin();
+
 $promotions = readJson('promotions.json');
 
 $editing = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_promotion'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/promotions.php'));
+        exit;
+    }
+
     $id = cleanText((string) ($_POST['id_promotion'] ?? ''));
     $libelle = cleanText((string) ($_POST['libelle'] ?? ''));
     $effectif = cleanInt($_POST['effectif_total'] ?? 0);
@@ -36,6 +44,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_promotion'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_promotion'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/promotions.php'));
+        exit;
+    }
+
     $id = cleanText((string) ($_POST['id_promotion'] ?? ''));
     $libelle = cleanText((string) ($_POST['libelle'] ?? ''));
     $effectif = cleanInt($_POST['effectif_total'] ?? 0);
@@ -58,6 +72,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_promotion'])) 
 }
 
 if (isset($_GET['delete'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/promotions.php'));
+        exit;
+    }
+
     $id = cleanText((string) $_GET['delete']);
     $index = findIndexByKey($promotions, 'id_promotion', $id);
 
@@ -86,7 +106,11 @@ require_once INCLUDES_PATH . '/header.php';
 
 <section class="card">
     <h2>Gestion des promotions</h2>
+    <?php if (!$isSuperAdmin): ?>
+        <div class="alert alert-error">Seul le super-administrateur peut ajouter, modifier ou supprimer des promotions.</div>
+    <?php endif; ?>
     <?php if ($editing): ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="update_promotion" value="1">
             <div class="input-row">
@@ -108,7 +132,11 @@ require_once INCLUDES_PATH . '/header.php';
                 <a class="btn" href="<?= htmlspecialchars(url('admin/promotions.php')) ?>">Annuler</a>
             </div>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php else: ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="add_promotion" value="1">
             <div class="input-row">
@@ -127,6 +155,9 @@ require_once INCLUDES_PATH . '/header.php';
             </div>
             <button class="btn" type="submit">Ajouter la promotion</button>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 
@@ -148,8 +179,12 @@ require_once INCLUDES_PATH . '/header.php';
                 <td><?= htmlspecialchars((string) ($promotion['libelle'] ?? '')) ?></td>
                 <td><?= htmlspecialchars((string) ($promotion['effectif_total'] ?? 0)) ?></td>
                 <td>
-                    <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/promotions.php?edit=' . urlencode((string) ($promotion['id_promotion'] ?? '')))) ?>">Modifier</a>
-                    <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/promotions.php?delete=' . urlencode((string) ($promotion['id_promotion'] ?? '')))) ?>" onclick="return confirm('Supprimer cette promotion ?')">Supprimer</a>
+                    <?php if ($isSuperAdmin): ?>
+                        <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/promotions.php?edit=' . urlencode((string) ($promotion['id_promotion'] ?? '')))) ?>">Modifier</a>
+                        <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/promotions.php?delete=' . urlencode((string) ($promotion['id_promotion'] ?? '')))) ?>" onclick="return confirm('Supprimer cette promotion ?')">Supprimer</a>
+                    <?php else: ?>
+                        <span class="badge">Lecture seule</span>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>

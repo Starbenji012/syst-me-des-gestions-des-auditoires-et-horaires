@@ -231,6 +231,34 @@ input, select {
     color: #155e75;
 }
 
+.blur-lock {
+    position: relative;
+    border: 1px dashed #b6c8c2;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.blurred-content {
+    filter: blur(4px);
+    opacity: 0.75;
+    pointer-events: none;
+    user-select: none;
+    padding: 10px;
+}
+
+.blur-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16px;
+    font-weight: 700;
+    color: #134e4a;
+    background: rgba(236, 253, 245, 0.72);
+}
+
 .footer {
     border-top: 1px solid var(--border);
     background: #f0f7f4;

@@ -7,6 +7,8 @@ require_once INCLUDES_PATH . '/functions.php';
 requireAdmin();
 requirePermission('manage_planning');
 
+$isSuperAdmin = isSuperAdmin();
+
 function planningUrl(array $params = []): string
 {
     $filtered = array_filter($params, static fn($value) => $value !== '' && $value !== null);
@@ -32,6 +34,12 @@ $options = readJson('options.json');
 $editingEntry = null;
 
 if (isset($_GET['delete'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/planning.php'));
+        exit;
+    }
+
     $slot = cleanText((string) ($_GET['delete_slot'] ?? ''));
     $roomId = cleanText((string) ($_GET['delete_room'] ?? ''));
     $courseId = cleanText((string) ($_GET['delete_course'] ?? ''));
@@ -48,6 +56,12 @@ if (isset($_GET['delete'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_planning'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/planning.php'));
+        exit;
+    }
+
     $originalSlot = cleanText((string) ($_POST['original_creneau'] ?? ''));
     $originalRoom = cleanText((string) ($_POST['original_salle'] ?? ''));
     $originalCourse = cleanText((string) ($_POST['original_cours'] ?? ''));
@@ -162,9 +176,16 @@ require_once INCLUDES_PATH . '/header.php';
 
 <section class="card">
     <h2>Gestion du planning</h2>
+    <?php if (!$isSuperAdmin): ?>
+        <div class="alert alert-error">Seul le super-administrateur peut ajouter, modifier, supprimer ou generer le planning.</div>
+    <?php endif; ?>
     <div class="actions">
-        <a class="btn btn-warning" href="<?= htmlspecialchars(url('actions/generate_planning.php')) ?>" onclick="return confirm('Generer automatiquement le planning ?')">Generer automatiquement</a>
-        <a class="btn btn-danger" href="<?= htmlspecialchars(url('actions/reset_planning.php')) ?>" onclick="return confirm('Vider tout le planning ?')">Vider le planning</a>
+        <?php if ($isSuperAdmin): ?>
+            <a class="btn btn-warning" href="<?= htmlspecialchars(url('actions/generate_planning.php')) ?>" onclick="return confirm('Generer automatiquement le planning ?')">Generer automatiquement</a>
+            <a class="btn btn-danger" href="<?= htmlspecialchars(url('actions/reset_planning.php')) ?>" onclick="return confirm('Vider tout le planning ?')">Vider le planning</a>
+        <?php else: ?>
+            <span class="badge">Mode lecture seule</span>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -226,6 +247,7 @@ require_once INCLUDES_PATH . '/header.php';
 <section class="card">
     <h3>Ajout manuel d'une seance</h3>
     <?php if ($editingEntry): ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="update_planning" value="1">
             <input type="hidden" name="original_creneau" value="<?= htmlspecialchars((string) ($editingEntry['creneau'] ?? '')) ?>">
@@ -285,7 +307,11 @@ require_once INCLUDES_PATH . '/header.php';
                 <a class="btn" href="<?= htmlspecialchars(url('admin/planning.php')) ?>">Annuler</a>
             </div>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php else: ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post" action="<?= htmlspecialchars(url('actions/add_planning.php')) ?>">
         <div class="input-row">
             <div>
@@ -333,6 +359,9 @@ require_once INCLUDES_PATH . '/header.php';
         </div>
         <button class="btn" type="submit">Ajouter au planning</button>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 
@@ -361,8 +390,12 @@ require_once INCLUDES_PATH . '/header.php';
                     <td><?= htmlspecialchars(getRoomLabel((string) ($row['salle'] ?? ''))) ?></td>
                     <td><?= htmlspecialchars(getGroupLabel((string) ($row['groupe'] ?? ''))) ?></td>
                     <td>
-                        <a class="btn btn-warning" href="<?= htmlspecialchars(planningUrl(['edit' => 1, 'edit_slot' => (string) ($row['creneau'] ?? ''), 'edit_room' => (string) ($row['salle'] ?? ''), 'edit_course' => (string) ($row['cours'] ?? ''), 'edit_group' => (string) ($row['groupe'] ?? '')])) ?>">Modifier</a>
-                        <a class="btn btn-danger" href="<?= htmlspecialchars(planningUrl(['delete' => 1, 'delete_slot' => (string) ($row['creneau'] ?? ''), 'delete_room' => (string) ($row['salle'] ?? ''), 'delete_course' => (string) ($row['cours'] ?? ''), 'delete_group' => (string) ($row['groupe'] ?? '')])) ?>" onclick="return confirm('Supprimer cette seance ?')">Supprimer</a>
+                        <?php if ($isSuperAdmin): ?>
+                            <a class="btn btn-warning" href="<?= htmlspecialchars(planningUrl(['edit' => 1, 'edit_slot' => (string) ($row['creneau'] ?? ''), 'edit_room' => (string) ($row['salle'] ?? ''), 'edit_course' => (string) ($row['cours'] ?? ''), 'edit_group' => (string) ($row['groupe'] ?? '')])) ?>">Modifier</a>
+                            <a class="btn btn-danger" href="<?= htmlspecialchars(planningUrl(['delete' => 1, 'delete_slot' => (string) ($row['creneau'] ?? ''), 'delete_room' => (string) ($row['salle'] ?? ''), 'delete_course' => (string) ($row['cours'] ?? ''), 'delete_group' => (string) ($row['groupe'] ?? '')])) ?>" onclick="return confirm('Supprimer cette seance ?')">Supprimer</a>
+                        <?php else: ?>
+                            <span class="badge">Lecture seule</span>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
@@ -406,7 +439,11 @@ require_once INCLUDES_PATH . '/header.php';
                                     <td><?= htmlspecialchars(getRoomLabel((string) ($row['salle'] ?? ''))) ?></td>
                                     <td><?= htmlspecialchars(getGroupLabel((string) ($row['groupe'] ?? ''))) ?></td>
                                     <td>
-                                        <a class="btn btn-danger" href="<?= htmlspecialchars(planningUrl(['delete' => 1, 'delete_slot' => (string) ($row['creneau'] ?? ''), 'delete_room' => (string) ($row['salle'] ?? ''), 'delete_course' => (string) ($row['cours'] ?? ''), 'delete_group' => (string) ($row['groupe'] ?? '')])) ?>" onclick="return confirm('Supprimer cette seance ?')">Supprimer</a>
+                                        <?php if ($isSuperAdmin): ?>
+                                            <a class="btn btn-danger" href="<?= htmlspecialchars(planningUrl(['delete' => 1, 'delete_slot' => (string) ($row['creneau'] ?? ''), 'delete_room' => (string) ($row['salle'] ?? ''), 'delete_course' => (string) ($row['cours'] ?? ''), 'delete_group' => (string) ($row['groupe'] ?? '')])) ?>" onclick="return confirm('Supprimer cette seance ?')">Supprimer</a>
+                                        <?php else: ?>
+                                            <span class="badge">Lecture seule</span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

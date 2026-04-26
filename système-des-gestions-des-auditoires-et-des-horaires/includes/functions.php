@@ -500,6 +500,7 @@ function defaultAdminRecord(): array
         'username' => ADMIN_USERNAME,
         'password_hash' => ADMIN_PASSWORD_HASH,
         'is_active' => true,
+        'is_super_admin' => true,
         'permissions' => defaultAdminPermissions(),
     ];
 }
@@ -538,6 +539,7 @@ function readAdminStore(): array
                 'username' => (string) $raw['username'],
                 'password_hash' => (string) $raw['password_hash'],
                 'is_active' => true,
+                'is_super_admin' => true,
                 'permissions' => defaultAdminPermissions(),
             ]],
         ];
@@ -559,6 +561,9 @@ function readAdminStore(): array
             'username' => (string) $admin['username'],
             'password_hash' => (string) $admin['password_hash'],
             'is_active' => isset($admin['is_active']) ? (bool) $admin['is_active'] : true,
+            'is_super_admin' => isset($admin['is_super_admin'])
+                ? (bool) $admin['is_super_admin']
+                : ((string) $admin['username'] === ADMIN_USERNAME),
             'permissions' => normalizePermissions((array) ($admin['permissions'] ?? defaultAdminPermissions())),
         ];
     }
@@ -586,6 +591,7 @@ function writeAdminStore(array $store): bool
             'username' => (string) $admin['username'],
             'password_hash' => (string) $admin['password_hash'],
             'is_active' => isset($admin['is_active']) ? (bool) $admin['is_active'] : true,
+            'is_super_admin' => !empty($admin['is_super_admin']),
             'permissions' => normalizePermissions((array) ($admin['permissions'] ?? [])),
         ];
     }
@@ -632,7 +638,7 @@ function listAdmins(): array
     return $admins;
 }
 
-function addAdminAccount(string $username, string $password, array $permissions): array
+function addAdminAccount(string $username, string $password, array $permissions, bool $isSuperAdmin = false): array
 {
     $username = cleanText($username);
     $errors = [];
@@ -658,6 +664,7 @@ function addAdminAccount(string $username, string $password, array $permissions)
         'username' => $username,
         'password_hash' => password_hash($password, PASSWORD_DEFAULT),
         'is_active' => true,
+        'is_super_admin' => $isSuperAdmin,
         'permissions' => normalizePermissions($permissions),
     ];
 
@@ -668,7 +675,7 @@ function addAdminAccount(string $username, string $password, array $permissions)
     return ['success' => true, 'errors' => []];
 }
 
-function updateAdminAccount(string $username, array $permissions, bool $isActive, ?string $newPassword = null): array
+function updateAdminAccount(string $username, array $permissions, bool $isActive, ?string $newPassword = null, ?bool $isSuperAdmin = null): array
 {
     $currentUsername = getAdminUsername();
     $normalizedPermissions = normalizePermissions($permissions);
@@ -689,12 +696,25 @@ function updateAdminAccount(string $username, array $permissions, bool $isActive
         return ['success' => false, 'errors' => ['Impossible de desactiver le dernier administrateur actif.']];
     }
 
+    $currentIsSuperAdmin = !empty($store['admins'][$index]['is_super_admin']);
+    $nextIsSuperAdmin = $isSuperAdmin ?? $currentIsSuperAdmin;
+
+    if ($currentUsername !== '' && $username === $currentUsername && !$nextIsSuperAdmin) {
+        return ['success' => false, 'errors' => ['Vous ne pouvez pas retirer votre propre role de super-administrateur.']];
+    }
+
+    $superAdminCount = count(array_filter($store['admins'], static fn(array $admin): bool => !empty($admin['is_super_admin'])));
+    if ($currentIsSuperAdmin && !$nextIsSuperAdmin && $superAdminCount <= 1) {
+        return ['success' => false, 'errors' => ['Impossible de retirer le role du dernier super-administrateur.']];
+    }
+
     if ($newPassword !== null && $newPassword !== '' && strlen($newPassword) < 6) {
         return ['success' => false, 'errors' => ['Le mot de passe doit contenir au moins 6 caracteres.']];
     }
 
     $store['admins'][$index]['permissions'] = $normalizedPermissions;
     $store['admins'][$index]['is_active'] = $isActive;
+    $store['admins'][$index]['is_super_admin'] = $nextIsSuperAdmin;
 
     if ($newPassword !== null && $newPassword !== '') {
         $store['admins'][$index]['password_hash'] = password_hash($newPassword, PASSWORD_DEFAULT);
@@ -706,6 +726,7 @@ function updateAdminAccount(string $username, array $permissions, bool $isActive
 
     if (isAdminLoggedIn() && ($store['admins'][$index]['username'] ?? '') === getAdminUsername()) {
         $_SESSION['admin_permissions'] = $store['admins'][$index]['permissions'];
+        $_SESSION['admin_is_super_admin'] = !empty($store['admins'][$index]['is_super_admin']);
     }
 
     return ['success' => true, 'errors' => []];
@@ -718,6 +739,24 @@ function getAdminUsername(): string
     }
 
     return (string) ($_SESSION['admin_username'] ?? '');
+}
+
+function isSuperAdmin(): bool
+{
+    if (!isAdminLoggedIn()) {
+        return false;
+    }
+
+    if (isset($_SESSION['admin_is_super_admin'])) {
+        return !empty($_SESSION['admin_is_super_admin']);
+    }
+
+    // Backward compatibility: rebuild missing session flag from persisted admin data.
+    $admin = getAdminByUsername(getAdminUsername());
+    $isSuper = $admin !== null && !empty($admin['is_super_admin']);
+    $_SESSION['admin_is_super_admin'] = $isSuper;
+
+    return $isSuper;
 }
 
 function adminHasPermission(string $permission): bool
@@ -740,7 +779,18 @@ function requirePermission(string $permission): void
 
     if (!adminHasPermission($permission)) {
         flashMessage('Acces refuse: droit insuffisant.', 'error');
-        header('Location: ' . url('admin/dashboard.php'));
+        header('Location: ' . url('admin/password.php'));
+        exit;
+    }
+}
+
+function requireSuperAdmin(): void
+{
+    requireAdmin();
+
+    if (!isSuperAdmin()) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/password.php'));
         exit;
     }
 }
@@ -767,6 +817,7 @@ function adminLogin(string $username, string $password): bool
     if (password_verify($password, (string) ($admin['password_hash'] ?? ''))) {
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_username'] = (string) ($admin['username'] ?? '');
+        $_SESSION['admin_is_super_admin'] = !empty($admin['is_super_admin']);
         $_SESSION['admin_permissions'] = normalizePermissions((array) ($admin['permissions'] ?? []));
         return true;
     }
@@ -780,7 +831,7 @@ function adminLogout(): void
         session_start();
     }
 
-    unset($_SESSION['admin_logged_in'], $_SESSION['admin_username'], $_SESSION['admin_permissions']);
+    unset($_SESSION['admin_logged_in'], $_SESSION['admin_username'], $_SESSION['admin_permissions'], $_SESSION['admin_is_super_admin']);
 }
 
 function updateAdminPassword(string $currentPassword, string $newPassword): array

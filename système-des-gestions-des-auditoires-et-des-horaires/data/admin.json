@@ -1,17 +1,32 @@
 {
-  "admins": [
-    {
-      "username": "admin",
-      "password_hash": "$2y$12$7OLHIVG3N/HXcnrsCZWyc.AKj7MSuMxBnKLD4QJ5KdghA3hO7W7x2",
-      "is_active": true,
-      "permissions": {
-        "manage_rooms": true,
-        "manage_courses": true,
-        "manage_promotions": true,
-        "manage_options": true,
-        "manage_planning": true,
-        "manage_admins": true
-      }
-    }
-  ]
+    "admins": [
+        {
+            "username": "admin",
+            "password_hash": "$2y$10$8K5xifHH4HQjCQPgyPY0e.RaK.WeV4Eyn6cD3kvC5KehW5txik8za",
+            "is_active": true,
+            "is_super_admin": true,
+            "permissions": {
+                "manage_rooms": true,
+                "manage_courses": true,
+                "manage_promotions": true,
+                "manage_options": true,
+                "manage_planning": true,
+                "manage_admins": true
+            }
+        },
+        {
+            "username": "alex",
+            "password_hash": "$2y$10$a5Oe6\/07RqxjRdXUpdCP6uPkuN2azecNgXXPWC4UxIUh8XD6BWzpS",
+            "is_active": true,
+            "is_super_admin": false,
+            "permissions": {
+                "manage_rooms": true,
+                "manage_courses": true,
+                "manage_promotions": false,
+                "manage_options": true,
+                "manage_planning": false,
+                "manage_admins": false
+            }
+        }
+    ]
 }

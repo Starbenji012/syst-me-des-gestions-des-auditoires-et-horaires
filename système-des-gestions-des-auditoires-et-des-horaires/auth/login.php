@@ -10,7 +10,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 if (isAdminLoggedIn()) {
-    header('Location: ' . url('admin/dashboard.php'));
+    header('Location: ' . url('admin/password.php'));
     exit;
 }
 
@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (adminLogin($username, $password)) {
         flashMessage('Connexion administrateur reussie.');
-        header('Location: ' . url('admin/dashboard.php'));
+        header('Location: ' . url('admin/password.php'));
         exit;
     }
 

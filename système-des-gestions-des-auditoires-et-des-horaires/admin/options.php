@@ -7,12 +7,20 @@ require_once INCLUDES_PATH . '/functions.php';
 requireAdmin();
 requirePermission('manage_options');
 
+$isSuperAdmin = isSuperAdmin();
+
 $options = readJson('options.json');
 $promotions = readJson('promotions.json');
 
 $editing = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_option'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/options.php'));
+        exit;
+    }
+
     $id = cleanText((string) ($_POST['id_option'] ?? ''));
     $libelle = cleanText((string) ($_POST['libelle'] ?? ''));
     $promotionParente = cleanText((string) ($_POST['promotion_parente'] ?? ''));
@@ -41,6 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_option'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_option'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/options.php'));
+        exit;
+    }
+
     $id = cleanText((string) ($_POST['id_option'] ?? ''));
     $libelle = cleanText((string) ($_POST['libelle'] ?? ''));
     $promotionParente = cleanText((string) ($_POST['promotion_parente'] ?? ''));
@@ -67,6 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_option'])) {
 }
 
 if (isset($_GET['delete'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/options.php'));
+        exit;
+    }
+
     $id = cleanText((string) $_GET['delete']);
     $index = findIndexByKey($options, 'id_option', $id);
 
@@ -95,7 +115,11 @@ require_once INCLUDES_PATH . '/header.php';
 
 <section class="card">
     <h2>Gestion des options</h2>
+    <?php if (!$isSuperAdmin): ?>
+        <div class="alert alert-error">Seul le super-administrateur peut ajouter, modifier ou supprimer des options.</div>
+    <?php endif; ?>
     <?php if ($editing): ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="update_option" value="1">
             <div class="input-row">
@@ -129,7 +153,11 @@ require_once INCLUDES_PATH . '/header.php';
                 <a class="btn" href="<?= htmlspecialchars(url('admin/options.php')) ?>">Annuler</a>
             </div>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php else: ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="add_option" value="1">
             <div class="input-row">
@@ -159,6 +187,9 @@ require_once INCLUDES_PATH . '/header.php';
             </div>
             <button class="btn" type="submit">Ajouter l'option</button>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 
@@ -182,8 +213,12 @@ require_once INCLUDES_PATH . '/header.php';
                 <td><?= htmlspecialchars(getGroupLabel((string) ($option['promotion_parente'] ?? ''))) ?></td>
                 <td><?= htmlspecialchars((string) ($option['effectif'] ?? 0)) ?></td>
                 <td>
-                    <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/options.php?edit=' . urlencode((string) ($option['id_option'] ?? '')))) ?>">Modifier</a>
-                    <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/options.php?delete=' . urlencode((string) ($option['id_option'] ?? '')))) ?>" onclick="return confirm('Supprimer cette option ?')">Supprimer</a>
+                    <?php if ($isSuperAdmin): ?>
+                        <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/options.php?edit=' . urlencode((string) ($option['id_option'] ?? '')))) ?>">Modifier</a>
+                        <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/options.php?delete=' . urlencode((string) ($option['id_option'] ?? '')))) ?>" onclick="return confirm('Supprimer cette option ?')">Supprimer</a>
+                    <?php else: ?>
+                        <span class="badge">Lecture seule</span>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>

@@ -7,11 +7,19 @@ require_once INCLUDES_PATH . '/functions.php';
 requireAdmin();
 requirePermission('manage_rooms');
 
+$isSuperAdmin = isSuperAdmin();
+
 $salles = readJson('salles.json');
 
 $editing = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_salle'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/salles.php'));
+        exit;
+    }
+
     $id = cleanText((string) ($_POST['id'] ?? ''));
     $designation = cleanText((string) ($_POST['designation'] ?? ''));
     $capacite = cleanInt($_POST['capacite'] ?? 0);
@@ -33,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_salle'])) {
 }
 
 if (isset($_GET['delete'])) {
+    if (!$isSuperAdmin) {
+        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
+        header('Location: ' . url('admin/salles.php'));
+        exit;
+    }
+
     $id = cleanText((string) $_GET['delete']);
     $index = findIndexByKey($salles, 'id', $id);
 
@@ -61,7 +75,11 @@ require_once INCLUDES_PATH . '/header.php';
 
 <section class="card">
     <h2>Gestion des salles</h2>
+    <?php if (!$isSuperAdmin): ?>
+        <div class="alert alert-error">Seul le super-administrateur peut ajouter, modifier ou supprimer des salles.</div>
+    <?php endif; ?>
     <?php if ($editing): ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="update_salle" value="1">
             <div class="input-row">
@@ -83,7 +101,11 @@ require_once INCLUDES_PATH . '/header.php';
                 <a class="btn" href="<?= htmlspecialchars(url('admin/salles.php')) ?>">Annuler</a>
             </div>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php else: ?>
+        <?php if ($isSuperAdmin): ?>
         <form method="post" action="<?= htmlspecialchars(url('actions/add_salle.php')) ?>">
             <div class="input-row">
                 <div>
@@ -101,6 +123,9 @@ require_once INCLUDES_PATH . '/header.php';
             </div>
             <button class="btn" type="submit">Ajouter la salle</button>
         </form>
+        <?php else: ?>
+            <p>Mode lecture seule pour ce compte.</p>
+        <?php endif; ?>
     <?php endif; ?>
 </section>
 
@@ -122,8 +147,12 @@ require_once INCLUDES_PATH . '/header.php';
                 <td><?= htmlspecialchars((string) ($salle['designation'] ?? '')) ?></td>
                 <td><?= htmlspecialchars((string) ($salle['capacite'] ?? 0)) ?></td>
                 <td>
-                    <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/salles.php?edit=' . urlencode((string) ($salle['id'] ?? '')))) ?>">Modifier</a>
-                    <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/salles.php?delete=' . urlencode((string) ($salle['id'] ?? '')))) ?>" onclick="return confirm('Supprimer cette salle ?')">Supprimer</a>
+                    <?php if ($isSuperAdmin): ?>
+                        <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/salles.php?edit=' . urlencode((string) ($salle['id'] ?? '')))) ?>">Modifier</a>
+                        <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/salles.php?delete=' . urlencode((string) ($salle['id'] ?? '')))) ?>" onclick="return confirm('Supprimer cette salle ?')">Supprimer</a>
+                    <?php else: ?>
+                        <span class="badge">Lecture seule</span>
+                    <?php endif; ?>
                 </td>
             </tr>
         <?php endforeach; ?>
