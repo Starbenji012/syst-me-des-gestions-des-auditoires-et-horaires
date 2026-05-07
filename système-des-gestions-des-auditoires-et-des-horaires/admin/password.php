@@ -53,6 +53,7 @@ if ($isSuperAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_
 }
 
 if ($isSuperAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
+    $originalUsername = cleanText((string) ($_POST['original_username'] ?? ''));
     $username = cleanText((string) ($_POST['username'] ?? ''));
     $newPassword = (string) ($_POST['new_password'] ?? '');
     $isActive = isset($_POST['is_active']);
@@ -64,7 +65,7 @@ if ($isSuperAdmin && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upda
         $permissionValues[$key] = in_array($key, $permissions, true);
     }
 
-    $result = updateAdminAccount($username, $permissionValues, $isActive, $newPassword !== '' ? $newPassword : null, $targetIsSuperAdmin);
+    $result = updateAdminAccount($originalUsername !== '' ? $originalUsername : $username, $username, $permissionValues, $isActive, $newPassword !== '' ? $newPassword : null, $targetIsSuperAdmin);
     if ($result['success']) {
         flashMessage('Administrateur modifie avec succes.');
     } else {
@@ -87,32 +88,6 @@ $admins = $isSuperAdmin ? listAdmins() : [];
 
 require_once INCLUDES_PATH . '/header.php';
 ?>
-
-<section class="card auth-card">
-    <h2>Changer le mot de passe</h2>
-    <p>La mise a jour est immediate et utilise un hash PHP securise.</p>
-
-    <?php if ($passwordError !== ''): ?>
-        <div class="alert alert-error"><?= htmlspecialchars($passwordError) ?></div>
-    <?php endif; ?>
-
-    <form method="post" class="auth-form">
-        <input type="hidden" name="update_password" value="1">
-        <div>
-            <label for="current_password">Mot de passe actuel</label>
-            <input id="current_password" name="current_password" type="password" required>
-        </div>
-        <div>
-            <label for="new_password">Nouveau mot de passe</label>
-            <input id="new_password" name="new_password" type="password" required minlength="6">
-        </div>
-        <div>
-            <label for="confirm_password">Confirmation</label>
-            <input id="confirm_password" name="confirm_password" type="password" required minlength="6">
-        </div>
-        <button class="btn" type="submit">Mettre a jour</button>
-    </form>
-</section>
 
 <section class="card">
     <h2>Gestion des administrateurs</h2>
@@ -164,10 +139,11 @@ require_once INCLUDES_PATH . '/header.php';
     <?php elseif ($editing): ?>
         <form method="post">
             <input type="hidden" name="update_admin" value="1">
+            <input type="hidden" name="original_username" value="<?= htmlspecialchars((string) ($editing['username'] ?? '')) ?>">
             <div class="input-row">
                 <div>
                     <label for="username">Nom d'utilisateur</label>
-                    <input id="username" name="username" readonly required value="<?= htmlspecialchars((string) ($editing['username'] ?? '')) ?>">
+                    <input id="username" name="username" required value="<?= htmlspecialchars((string) ($editing['username'] ?? '')) ?>">
                 </div>
                 <div>
                     <label for="new_password">Nouveau mot de passe (optionnel)</label>
@@ -234,8 +210,11 @@ require_once INCLUDES_PATH . '/header.php';
 
 <?php if ($isSuperAdmin): ?>
 <section class="card table-wrap">
-    <h3>Liste des administrateurs</h3>
-    <table>
+    <div class="table-tools">
+        <h3>Liste des administrateurs</h3>
+        <input class="table-filter" type="search" data-table-filter="#admins-table" placeholder="Rechercher un administrateur...">
+    </div>
+    <table id="admins-table">
         <thead>
         <tr>
             <th>Utilisateur</th>
@@ -275,5 +254,31 @@ require_once INCLUDES_PATH . '/header.php';
     </table>
 </section>
 <?php endif; ?>
+
+<section class="card auth-card" style="margin-top: 40px;">
+    <h2>Changer le mot de passe</h2>
+    <p>La mise a jour est immediate et utilise un hash PHP securise.</p>
+
+    <?php if ($passwordError !== ''): ?>
+        <div class="alert alert-error"><?= htmlspecialchars($passwordError) ?></div>
+    <?php endif; ?>
+
+    <form method="post" class="auth-form">
+        <input type="hidden" name="update_password" value="1">
+        <div>
+            <label for="current_password">Mot de passe actuel</label>
+            <input id="current_password" name="current_password" type="password" required>
+        </div>
+        <div>
+            <label for="new_password">Nouveau mot de passe</label>
+            <input id="new_password" name="new_password" type="password" required minlength="6">
+        </div>
+        <div>
+            <label for="confirm_password">Confirmation</label>
+            <input id="confirm_password" name="confirm_password" type="password" required minlength="6">
+        </div>
+        <button class="btn" type="submit">Mettre a jour</button>
+    </form>
+</section>
 
 <?php require_once INCLUDES_PATH . '/footer.php'; ?>

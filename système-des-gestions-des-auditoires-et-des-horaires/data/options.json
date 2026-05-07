@@ -1,14 +1,62 @@
 [
-    {
-        "id_option": "O1",
-        "libelle": "Informatique",
-        "promotion_parente": "P2",
-        "effectif": 40
-    },
-    {
-        "id_option": "O2",
-        "libelle": "Réseaux",
-        "promotion_parente": "P3",
-        "effectif": 30
-    }
+  {
+    "id_option": "O1",
+    "libelle": "Informatique",
+    "promotion_parente": "P2",
+    "effectif": 40
+  },
+  {
+    "id_option": "O2",
+    "libelle": "Réseaux",
+    "promotion_parente": "P3",
+    "effectif": 30
+  },
+  {
+    "id_option": "O3",
+    "libelle": "IA et Data Science - L3",
+    "promotion_parente": "P3",
+    "effectif": 30
+  },
+  {
+    "id_option": "O4",
+    "libelle": "Cybersécurité - L3",
+    "promotion_parente": "P3",
+    "effectif": 30
+  },
+  {
+    "id_option": "O5",
+    "libelle": "Robotique - L4",
+    "promotion_parente": "P4",
+    "effectif": 25
+  },
+  {
+    "id_option": "O6",
+    "libelle": "Génie logiciel - L4",
+    "promotion_parente": "P4",
+    "effectif": 25
+  },
+  {
+    "id_option": "O7",
+    "libelle": "IA et Data Science - L4",
+    "promotion_parente": "P4",
+    "effectif": 25
+  },
+  {
+    "id_option": "O8",
+    "libelle": "Cybersécurité - L4",
+    "promotion_parente": "P4",
+    "effectif": 25
+  },
+  {
+    "id_option": "O9",
+    "libelle": "Robotique - L3",
+    "promotion_parente": "P3",
+    "effectif": 30
+  },
+  {
+    "id_option": "O10",
+    "libelle": "Génie logiciel - L3",
+    "promotion_parente": "P3",
+    "effectif": 30
+  }
 ]

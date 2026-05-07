@@ -7,20 +7,12 @@ require_once INCLUDES_PATH . '/functions.php';
 requireAdmin();
 requirePermission('manage_options');
 
-$isSuperAdmin = isSuperAdmin();
-
 $options = readJson('options.json');
 $promotions = readJson('promotions.json');
 
 $editing = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_option'])) {
-    if (!$isSuperAdmin) {
-        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
-        header('Location: ' . url('admin/options.php'));
-        exit;
-    }
-
     $id = cleanText((string) ($_POST['id_option'] ?? ''));
     $libelle = cleanText((string) ($_POST['libelle'] ?? ''));
     $promotionParente = cleanText((string) ($_POST['promotion_parente'] ?? ''));
@@ -49,12 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_option'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_option'])) {
-    if (!$isSuperAdmin) {
-        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
-        header('Location: ' . url('admin/options.php'));
-        exit;
-    }
-
     $id = cleanText((string) ($_POST['id_option'] ?? ''));
     $libelle = cleanText((string) ($_POST['libelle'] ?? ''));
     $promotionParente = cleanText((string) ($_POST['promotion_parente'] ?? ''));
@@ -81,12 +67,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_option'])) {
 }
 
 if (isset($_GET['delete'])) {
-    if (!$isSuperAdmin) {
-        flashMessage('Acces refuse: reserve au super-administrateur.', 'error');
-        header('Location: ' . url('admin/options.php'));
-        exit;
-    }
-
     $id = cleanText((string) $_GET['delete']);
     $index = findIndexByKey($options, 'id_option', $id);
 
@@ -115,11 +95,7 @@ require_once INCLUDES_PATH . '/header.php';
 
 <section class="card">
     <h2>Gestion des options</h2>
-    <?php if (!$isSuperAdmin): ?>
-        <div class="alert alert-error">Seul le super-administrateur peut ajouter, modifier ou supprimer des options.</div>
-    <?php endif; ?>
     <?php if ($editing): ?>
-        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="update_option" value="1">
             <div class="input-row">
@@ -138,7 +114,7 @@ require_once INCLUDES_PATH . '/header.php';
                         <?php foreach ($promotions as $promotion): ?>
                             <?php $value = (string) ($promotion['id_promotion'] ?? ''); ?>
                             <option value="<?= htmlspecialchars($value) ?>" <?= (($editing['promotion_parente'] ?? '') === $value) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars((string) ($promotion['libelle'] ?? '')) ?>
+                                <?= htmlspecialchars((string) ($promotion['libelle'] ?? '')) ?> (<?= htmlspecialchars($value) ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -153,11 +129,7 @@ require_once INCLUDES_PATH . '/header.php';
                 <a class="btn" href="<?= htmlspecialchars(url('admin/options.php')) ?>">Annuler</a>
             </div>
         </form>
-        <?php else: ?>
-            <p>Mode lecture seule pour ce compte.</p>
-        <?php endif; ?>
     <?php else: ?>
-        <?php if ($isSuperAdmin): ?>
         <form method="post">
             <input type="hidden" name="add_option" value="1">
             <div class="input-row">
@@ -174,8 +146,9 @@ require_once INCLUDES_PATH . '/header.php';
                     <select id="promotion_parente" name="promotion_parente" required>
                         <option value="">Selectionner</option>
                         <?php foreach ($promotions as $promotion): ?>
-                            <option value="<?= htmlspecialchars((string) ($promotion['id_promotion'] ?? '')) ?>">
-                                <?= htmlspecialchars((string) ($promotion['libelle'] ?? '')) ?>
+                            <?php $value = (string) ($promotion['id_promotion'] ?? ''); ?>
+                            <option value="<?= htmlspecialchars($value) ?>">
+                                <?= htmlspecialchars((string) ($promotion['libelle'] ?? '')) ?> (<?= htmlspecialchars($value) ?>)
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -187,15 +160,15 @@ require_once INCLUDES_PATH . '/header.php';
             </div>
             <button class="btn" type="submit">Ajouter l'option</button>
         </form>
-        <?php else: ?>
-            <p>Mode lecture seule pour ce compte.</p>
-        <?php endif; ?>
     <?php endif; ?>
 </section>
 
 <section class="card table-wrap">
-    <h3>Liste des options</h3>
-    <table>
+    <div class="table-tools">
+        <h3>Liste des options</h3>
+        <input class="table-filter" type="search" data-table-filter="#options-table" placeholder="Rechercher une option...">
+    </div>
+    <table id="options-table">
         <thead>
         <tr>
             <th>ID</th>
@@ -207,18 +180,15 @@ require_once INCLUDES_PATH . '/header.php';
         </thead>
         <tbody>
         <?php foreach ($options as $option): ?>
+            <?php $parentId = (string) ($option['promotion_parente'] ?? ''); ?>
             <tr>
                 <td><?= htmlspecialchars((string) ($option['id_option'] ?? '')) ?></td>
                 <td><?= htmlspecialchars((string) ($option['libelle'] ?? '')) ?></td>
-                <td><?= htmlspecialchars(getGroupLabel((string) ($option['promotion_parente'] ?? ''))) ?></td>
+                <td><?= htmlspecialchars(getGroupLabel($parentId)) ?> (<?= htmlspecialchars($parentId) ?>)</td>
                 <td><?= htmlspecialchars((string) ($option['effectif'] ?? 0)) ?></td>
                 <td>
-                    <?php if ($isSuperAdmin): ?>
-                        <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/options.php?edit=' . urlencode((string) ($option['id_option'] ?? '')))) ?>">Modifier</a>
-                        <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/options.php?delete=' . urlencode((string) ($option['id_option'] ?? '')))) ?>" onclick="return confirm('Supprimer cette option ?')">Supprimer</a>
-                    <?php else: ?>
-                        <span class="badge">Lecture seule</span>
-                    <?php endif; ?>
+                    <a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/options.php?edit=' . urlencode((string) ($option['id_option'] ?? '')))) ?>">Modifier</a>
+                    <a class="btn btn-danger" href="<?= htmlspecialchars(url('admin/options.php?delete=' . urlencode((string) ($option['id_option'] ?? '')))) ?>" onclick="return confirm('Supprimer cette option ?')">Supprimer</a>
                 </td>
             </tr>
         <?php endforeach; ?>

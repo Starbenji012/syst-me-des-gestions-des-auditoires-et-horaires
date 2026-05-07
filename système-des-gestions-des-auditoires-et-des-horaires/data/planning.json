@@ -1,1 +1,26 @@
-[]
+[
+    {
+        "creneau": "2026-05-11 08:00",
+        "salle": "S4",
+        "cours": "C1",
+        "groupe": "P1"
+    },
+    {
+        "creneau": "2026-05-11 08:00",
+        "salle": "S3",
+        "cours": "C2",
+        "groupe": "O1"
+    },
+    {
+        "creneau": "2026-05-11 10:30",
+        "salle": "S4",
+        "cours": "C2",
+        "groupe": "O1"
+    },
+    {
+        "creneau": "2026-05-11 13:00",
+        "salle": "S4",
+        "cours": "C3",
+        "groupe": "O1"
+    }
+]

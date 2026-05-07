@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../config/config.php';
 require_once INCLUDES_PATH . '/functions.php';
 requireAdmin();
+requireSuperAdmin();
 requirePermission('manage_rooms');
 
 if (session_status() !== PHP_SESSION_ACTIVE) {

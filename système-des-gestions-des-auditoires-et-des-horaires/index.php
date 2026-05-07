@@ -14,6 +14,7 @@ $options = readJson('options.json');
 $today = date('Y-m-d');
 $todayPlanning = array_values(array_filter($planning, static fn(array $entry): bool => substr((string) ($entry['creneau'] ?? ''), 0, 10) === $today));
 $loggedIn = isAdminLoggedIn();
+$isSuperAdmin = isSuperAdmin();
 
 $occupiedRooms = [];
 foreach ($planning as $entry) {
@@ -53,7 +54,7 @@ require_once INCLUDES_PATH . '/header.php';
 		<a class="btn" href="#planning-global">Planning global</a>
 		<?php if (!$loggedIn): ?>
 			<a class="btn btn-warning" href="<?= htmlspecialchars(url('auth/login.php')) ?>">Connexion administrateur</a>
-		<?php else: ?>
+		<?php elseif ($isSuperAdmin): ?>
 			<a class="btn btn-warning" href="<?= htmlspecialchars(url('admin/password.php')) ?>">Espace administration</a>
 		<?php endif; ?>
 	</div>
@@ -87,7 +88,7 @@ require_once INCLUDES_PATH . '/header.php';
 </section>
 
 <?php if ($loggedIn): ?>
-<section class="card">
+<section class="card spacing-top">
 	<h3>Vue dashboard administrateur</h3>
 	<div class="grid">
 		<article class="kpi">
@@ -114,7 +115,7 @@ require_once INCLUDES_PATH . '/header.php';
 </section>
 <?php endif; ?>
 
-<section class="card">
+<section class="card spacing-top">
 	<h3>Disponibilite des salles</h3>
 	<div class="table-wrap">
 		<table>
@@ -139,7 +140,7 @@ require_once INCLUDES_PATH . '/header.php';
 	</div>
 </section>
 
-<section class="card">
+<section class="card spacing-top">
 	<h3>Occupation par jour</h3>
 	<div class="grid">
 		<?php if (empty($byDay)): ?>
@@ -155,7 +156,7 @@ require_once INCLUDES_PATH . '/header.php';
 	</div>
 </section>
 
-<section class="card" id="planning-global">
+<section class="card spacing-top" id="planning-global">
 	<h2>Planning global</h2>
 	<div class="table-wrap">
 		<table>

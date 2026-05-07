@@ -675,20 +675,31 @@ function addAdminAccount(string $username, string $password, array $permissions,
     return ['success' => true, 'errors' => []];
 }
 
-function updateAdminAccount(string $username, array $permissions, bool $isActive, ?string $newPassword = null, ?bool $isSuperAdmin = null): array
+function updateAdminAccount(string $originalUsername, string $newUsername, array $permissions, bool $isActive, ?string $newPassword = null, ?bool $isSuperAdmin = null): array
 {
-    $currentUsername = getAdminUsername();
+    $currentAdminUsername = getAdminUsername();
     $normalizedPermissions = normalizePermissions($permissions);
 
-    if ($currentUsername !== '' && $username === $currentUsername && empty($normalizedPermissions['manage_admins'])) {
+    $newUsername = cleanText($newUsername);
+
+    if ($newUsername === '') {
+        return ['success' => false, 'errors' => ['Le nom d\'utilisateur est obligatoire.']];
+    }
+
+    if ($currentAdminUsername !== '' && $originalUsername === $currentAdminUsername && empty($normalizedPermissions['manage_admins'])) {
         return ['success' => false, 'errors' => ['Vous ne pouvez pas retirer votre propre droit de gestion des administrateurs.']];
     }
 
     $store = readAdminStore();
-    $index = findAdminIndexByUsername($store['admins'], $username);
+    $index = findAdminIndexByUsername($store['admins'], $originalUsername);
 
     if ($index < 0) {
         return ['success' => false, 'errors' => ['Administrateur introuvable.']];
+    }
+
+    $existingUsernameIndex = findAdminIndexByUsername($store['admins'], $newUsername);
+    if ($newUsername !== $originalUsername && $existingUsernameIndex >= 0) {
+        return ['success' => false, 'errors' => ['Ce nom d\'utilisateur est deja utilise.']];
     }
 
     $activeCount = count(array_filter($store['admins'], static fn(array $admin): bool => !empty($admin['is_active'])));
@@ -699,7 +710,7 @@ function updateAdminAccount(string $username, array $permissions, bool $isActive
     $currentIsSuperAdmin = !empty($store['admins'][$index]['is_super_admin']);
     $nextIsSuperAdmin = $isSuperAdmin ?? $currentIsSuperAdmin;
 
-    if ($currentUsername !== '' && $username === $currentUsername && !$nextIsSuperAdmin) {
+    if ($currentAdminUsername !== '' && $originalUsername === $currentAdminUsername && !$nextIsSuperAdmin) {
         return ['success' => false, 'errors' => ['Vous ne pouvez pas retirer votre propre role de super-administrateur.']];
     }
 
@@ -715,6 +726,7 @@ function updateAdminAccount(string $username, array $permissions, bool $isActive
     $store['admins'][$index]['permissions'] = $normalizedPermissions;
     $store['admins'][$index]['is_active'] = $isActive;
     $store['admins'][$index]['is_super_admin'] = $nextIsSuperAdmin;
+    $store['admins'][$index]['username'] = $newUsername;
 
     if ($newPassword !== null && $newPassword !== '') {
         $store['admins'][$index]['password_hash'] = password_hash($newPassword, PASSWORD_DEFAULT);
@@ -724,7 +736,8 @@ function updateAdminAccount(string $username, array $permissions, bool $isActive
         return ['success' => false, 'errors' => ['Impossible de mettre a jour cet administrateur.']];
     }
 
-    if (isAdminLoggedIn() && ($store['admins'][$index]['username'] ?? '') === getAdminUsername()) {
+    if (isAdminLoggedIn() && $originalUsername === getAdminUsername()) {
+        $_SESSION['admin_username'] = $newUsername;
         $_SESSION['admin_permissions'] = $store['admins'][$index]['permissions'];
         $_SESSION['admin_is_super_admin'] = !empty($store['admins'][$index]['is_super_admin']);
     }

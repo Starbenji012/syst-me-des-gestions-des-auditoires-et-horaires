@@ -18,5 +18,15 @@
     "id_promotion": "P4",
     "libelle": "Licence 4",
     "effectif_total": 50
+  },
+  {
+    "id_promotion": "P5",
+    "libelle": "Master",
+    "effectif_total": 40
+  },
+  {
+    "id_promotion": "P6",
+    "libelle": "Doctorat",
+    "effectif_total": 20
   }
 ]

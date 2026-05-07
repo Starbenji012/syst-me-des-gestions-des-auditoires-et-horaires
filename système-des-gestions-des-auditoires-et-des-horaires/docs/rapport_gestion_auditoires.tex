@@ -17,17 +17,27 @@
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 
 \title{Rapport Technique\\\large Systeme de Gestion des Auditoires et des Horaires}
-\author{Projet PHP Procedural (sans framework)}
+\author{Par KINTAUDI NDINDA BENJAMINE ET INAKA LA JOIE}
 \date{\today}
 
 \begin{document}
+\pagenumbering{roman}
 \maketitle
-\tableofcontents
+\thispagestyle{empty}
 \newpage
+\setcounter{page}{0}
+
+\tableofcontents
+\thispagestyle{empty}
+\newpage
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
 
 \section{Introduction}
 Ce document presente de maniere detaillee le travail realise pour concevoir et developper une application complete de gestion des auditoires.
 L'application permet de planifier les cours, reserver les salles, eviter les conflits d'occupation et optimiser l'affectation des ressources selon la capacite des auditoires.
+Elle integre aussi un espace administrateur securise, des droits par module, un theme sombre harmonise et des fonctions de recherche et filtrage dans les listes principales.
 
 Le projet est construit en \textbf{PHP procedural} (sans framework), avec des vues HTML/CSS integrees dans les fichiers PHP et un stockage des donnees en \textbf{JSON}.
 
@@ -70,7 +80,8 @@ Mettre en place un systeme academique permettant de:
     \item \textbf{Config}: constantes application + resolution d'URL;
     \item \textbf{Fonctions metier}: lecture/criture JSON, validations, planning, permissions;
     \item \textbf{Pages}: presentation et formulaires;
-    \item \textbf{Actions}: traitement des soumissions et redirections.
+    \item \textbf{Actions}: traitement des soumissions et redirections;
+    \item \textbf{Interface front}: theme sombre, ergonomie unifiee, filtres de tableau reutilisables.
 \end{itemize}
 
 \section{Modele de donnees JSON}
@@ -91,6 +102,14 @@ Mettre en place un systeme academique permettant de:
     \item un \textbf{cours} cible soit une promotion, soit une option (champ \texttt{promotion\_option});
     \item une \textbf{option} depend d'une promotion parente;
     \item une ligne de \textbf{planning} relie un creneau, une salle, un cours et un groupe.
+\end{itemize}
+
+\subsection{Referentiels pedagogiques}
+Les donnees de promotion et d'option ont ete enrichies pour mieux representer le parcours academique:
+\begin{itemize}[leftmargin=1.2cm]
+    \item promotions de base: L1, L2, L3, L4, Master et Doctorat;
+    \item options rattachees aux niveaux L3 et L4 pour les specialisations;
+    \item affichage explicite du code et du libelle pour faciliter la selection.
 \end{itemize}
 
 \section{Logique metier principale}
@@ -129,8 +148,9 @@ La generation suit une logique en plusieurs etapes:
 \section{Interfaces et parcours utilisateur}
 \subsection{Espace public}
 \begin{itemize}[leftmargin=1.2cm]
-    \item page d'accueil: KPIs, planning du jour, planning global;
-    \item page statistiques: disponibilite des salles, occupation par jour, capacites globales.
+    \item page d'accueil: KPIs, planning du jour, planning global, acces rapide au planning;
+    \item page statistiques: disponibilite des salles, occupation par jour, capacites globales;
+    \item interface allignee sur un theme sombre avec espaces visuels harmonises.
 \end{itemize}
 
 \subsection{Espace administrateur}
@@ -138,6 +158,7 @@ La generation suit une logique en plusieurs etapes:
     \item dashboard (indicateurs de synthese);
     \item CRUD salles, cours, promotions, options;
     \item planning: filtres, vue hebdomadaire, ajout, modification, suppression, generation auto, reset;
+    \item recherche et filtrage dans les tableaux administratifs;
     \item changement de mot de passe;
     \item gestion des administrateurs et des droits.
 \end{itemize}
@@ -169,6 +190,8 @@ Ces permissions sont appliquees a la fois sur:
     \item l'execution des actions serveur.
 \end{itemize}
 
+La gestion des administrateurs reste reservee au super-administrateur, tandis que les autres admins peuvent gerer completement leurs modules autorises (ajout, modification, suppression).
+
 \subsection{Regle de securite specifique}
 Un administrateur connecte ne peut pas se retirer lui-meme le droit \texttt{manage\_admins}. Cette protection evite de perdre la capacite de gouvernance des comptes administrateurs.
 
@@ -182,27 +205,58 @@ Les suppressions/modifications de planning sont basees sur des cles logiques (cr
 
 \subsection{Verification technique}
 Les fichiers PHP ont ete verifies regulierement avec \texttt{php -l} pour detecter rapidement les erreurs de syntaxe durant l'evolution du code.
+Au moment de la redaction de ce rapport, l'application ne presente aucune erreur PHP detectee par la verification automatique.
+
+\subsection{Ameliorations d'interface}
+Les derniers ajustements visuels incluent:
+\begin{itemize}[leftmargin=1.2cm]
+    \item passage a un theme sombre avec palette verte foncee;
+    \item espacement renforce entre les blocs de statistiques et les sections de contenu;
+    \item suppression du soulignement des liens de navigation;
+    \item bouton d'acces administrateur masque pour les comptes non super-administrateurs;
+    \item mise en avant plus lisible des promotions parentes et des specialisations.
+\end{itemize}
 
 \section{Limites actuelles}
 \begin{itemize}[leftmargin=1.2cm]
     \item stockage JSON adapte aux petites/moyennes charges mais moins adapte au multi-utilisateur intensif;
     \item absence de transactions fortes comme dans une base relationnelle;
-    \item historique/audit des actions administrateur non encore implemente.
+    \item historique/audit des actions administrateur non encore implemente;
+    \item recherche et filtrage encore simples cote client, sans indexation avancee.
 \end{itemize}
 
-\section{Perspectives d'amelioration}
-\begin{itemize}[leftmargin=1.2cm]
-    \item journalisation des actions sensibles (audit trail);
-    \item export PDF/Excel du planning;
-    \item notification des conflits restants;
-    \item moteur de generation plus avance (contraintes pedagogiques supplementaires);
-    \item migration optionnelle vers une base SQL si le volume augmente.
-\end{itemize}
+\section{Difficultes rencontrees}
+\subsection{Gestion des droits et permissions}
+La principale difficulte a ete la transition d'une logique basee sur les roles (super-admin) vers un systeme de permissions granulaires par module.
+L'approche initiale avait mis en place des restrictions strictes qui empechaient les administrateurs reguliers d'acceder aux pages CRUD meme s'ils possedaient les permissions appropriees.
+La solution a necessite de restructurer completement la logique de verification d'acces et de la rendre modulaire pour chaque permission (\texttt{manage\_rooms}, \texttt{manage\_courses}, etc.).
+
+\subsection{Architecture JSON et coherence des donnees}
+L'absence de transactions et de contraintes fortes du JSON a complique la gestion de la coherence entre fichiers (\texttt{promotions.json}, \texttt{options.json}, \texttt{planning.json}).
+Lors de la suppression d'une promotion, il fallait nettoyer les cours associes et leurs occurrences dans le planning.
+Cette gestion manuelle des relations a augmente le risque de donnees orphelines et a necesssite des fonctions de validation poussees.
+
+\subsection{Theme visuel et cohérence CSS}
+La transition vers un theme sombre avec palette verte a necessite de revoir systematiquement tous les fichiers PHP pour harmoniser les couleurs, les espacements et les bordures.
+Le challenge principal etait de maintenir la lisibilite en mode sombre tout en conservant une interface professionnelle, en particulier pour les tableaux administratifs et les formulaires.
+
+\subsection{Filtrage et recherche cote client}
+L'implementation de la recherche et du filtrage dans les listes administratives s'est avéree complexe en raison de la nature procedrale du JavaScript et de la nécessite de maintenir la synchronisation avec les donnees JSON.
+Les filtres devaient fonctionner sans rechargement de page tout en restant performants sur des tableaux contenant des centaines de lignes.
+
+\subsection{Donnees pedagogiques et specialisations}
+L'enrichissement des donnees de promotion et d'option (ajout de Master, Doctorat et specialisations L3/L4) a necessite de repenser la structure de \texttt{promotions.json} et \texttt{options.json}.
+La retroactivite sur les donnees existantes a demande une strategie d'evolution sans casser les courses deja associees.
+
+\subsection{Organisation du code et maintenance}
+La croissance progressive des fichiers action a necessité une reorganisation des scripts de maintenance dans un dossier dedie.
+Distinguer entre scripts de maintenance (usage exceptionnel) et fichiers application critiques a aide a clarifier le perimetre et les responsabilites.
 
 \section{Conclusion}
 Le projet repond aux exigences centrales: planification, reservation, prevention des conflits, respect des capacites, optimisation de l'affectation et administration securisee.
 La conception en PHP procedural et JSON est respectee, avec une architecture claire, maintenable et evolutive.
 
 Ce travail constitue une base operationnelle solide pour la gestion academique des auditoires et des horaires, tout en laissant de la place a des extensions futures.
+Les corrections recentes ont permis de stabiliser les droits par module, d'ameliorer la lisibilite de l'interface et de rapprocher le rapport de l'etat reel de l'application.
 
 \end{document}
